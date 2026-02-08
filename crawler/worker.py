@@ -18,7 +18,12 @@ class Worker(Thread):
         super().__init__(daemon=True)
         
     def run(self):
+        num_crawled = 0
+        crawled_max = 5
         while True:
+            if num_crawled > crawled_max:
+                self.logger.info(f"Reached 5 pages to test if the crawler is working right")
+                break
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
@@ -31,4 +36,5 @@ class Worker(Thread):
             for scraped_url in scraped_urls:
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
+            num_crawled += 1
             time.sleep(self.config.time_delay)
