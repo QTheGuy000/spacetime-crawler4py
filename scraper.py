@@ -1,5 +1,6 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin, urldefrag
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -15,7 +16,63 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+    
+    #Stores all hyperlinks extracted from the page
+    out_links = []
+    
+    #Step 1: validate response
+    #if resp is missing or has no raw_response, there is no page to parse
+    if resp is None or resp.raw_response is None:
+        return out_links
+    
+    #Only process successful HTTP responses (code 200)
+    if resp.status != 200:
+        return out_links
+    
+    #Step 2: check if content exists
+    content = resp.raw_response.content
+    if not content:
+        return out_links
+    
+    #Step 3: check if content type is HTML
+    ctype = (resp.raw_response.headers.get("Content-Type") or "").lower()
+    if "text/html" not in ctype:
+        return out_links
+    
+    #Step 4: parse HTML and extract links
+    soup = BeautifulSoup(content, "lxml")
+    
+    #Use final downloaded URL as base
+    base = raw.url or url
+    
+    #Avoid duplicates on the same page
+    seen_on_page = set()
+    
+    #Loop through all anchor tags with href
+    for a in soup.find_all("a", href = True):
+        #Get the href and clean
+        href = (a.get("href") or "").strip()
+        if not href:
+            continue
+        
+        #Convert relative URLs into absolute URLs
+        abs_url = urljoin(base, href)
+        
+        #Remove fragments (#...) so they dont count as different pages
+        abs_url, _ = urldefrag(abs_url)
+        
+        #Lowercase hostname only (keep the path)
+        p = urlparse(abs_url)
+        if p.netloc:
+            abs_url = p._replace(netloc=p.netloc.lower()).geturl()
+            
+        #Only add the URL once per page
+        if abs_url not in seen_on_page:
+            seen_on_page.add(abs_url)
+            out_links.append(abs_url)
+    
+    #return the list
+    return out_links
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -25,6 +82,15 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+        allowed_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
+        for domain in allowed_domains:
+            if parsed.netloc.endswith(domain):
+                break
+        else:
+            return False
+        
+        parsed = parsed._replace(fragment="")
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
