@@ -29,13 +29,16 @@ def extract_next_links(url, resp):
     if resp.status != 200:
         return out_links
     
+    #save raw response URL
+    raw = resp.raw_response
+    
     #Step 2: check if content exists
-    content = resp.raw_response.content
+    content = raw.content
     if not content:
         return out_links
     
     #Step 3: check if content type is HTML
-    ctype = (resp.raw_response.headers.get("Content-Type") or "").lower()
+    ctype = (raw.headers.get("Content-Type") or "").lower()
     if "text/html" not in ctype:
         return out_links
     
@@ -82,14 +85,13 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+        netloc = parsed.netloc.lower()
         allowed_domains = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         for domain in allowed_domains:
-            if parsed.netloc.endswith(domain):
+            if netloc.endswith(domain):
                 break
         else:
             return False
-        
-        parsed = parsed._replace(fragment="")
 
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
