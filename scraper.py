@@ -98,45 +98,45 @@ def is_valid(url):
         if not any(netloc.endswith(d) for d in allowed):
             return false
 
-    #avoid extremely long URLS
-    if len(url) > 300:
-        return false
-
-    #avoid session ids
-    lower_url = url.lower()
-    if "jsessionid" in lower_url or "sessionid" in lower_url:
-        return False
-
-    #avoid directory listing sort traps
-    if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
-        return False
-
-    #Avoid too many query parameters
-    if parsed.query:
-        parts = re.split(r"[&;]", parsed.query)
-        if len([p for p in parts if p.strip()]) > 8:
-            return False
-
-    #avoid repeated path segments
-    segments = [s for s in parsed.path.lower().split("/") if s]
-    counts = {}
-    for s in segments:
-        count[s] = counts.get(s, 0) + 1
-        if count[s] >= 4
-            return False
-
+        #avoid extremely long URLS
+        if len(url) > 300:
+            return false
     
-    return not re.match(
-        r".*\.(css|js|bmp|gif|jpe?g|ico"
-        + r"|png|tiff?|mid|mp2|mp3|mp4"
-        + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-        + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-        + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-        + r"|epub|dll|cnf|tgz|sha1"
-        + r"|thmx|mso|arff|rtf|jar|csv"
-        + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
-        + r"|txt|c|h|cpp|py|java)$", 
-        parsed.path.lower())
+        #avoid session ids
+        lower_url = url.lower()
+        if "jsessionid" in lower_url or "sessionid" in lower_url:
+            return False
+    
+        #avoid directory listing sort traps
+        if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
+            return False
+    
+        #Avoid too many query parameters
+        if parsed.query:
+            parts = re.split(r"[&;]", parsed.query)
+            if len([p for p in parts if p.strip()]) > 8:
+                return False
+    
+        #avoid repeated path segments
+        segments = [s for s in parsed.path.lower().split("/") if s]
+        counts = {}
+        for s in segments:
+            count[s] = counts.get(s, 0) + 1
+            if count[s] >= 4:
+                return False
+    
+        
+        return not re.match(
+            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            + r"|png|tiff?|mid|mp2|mp3|mp4"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+            + r"|epub|dll|cnf|tgz|sha1"
+            + r"|thmx|mso|arff|rtf|jar|csv"
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
+            + r"|txt|c|h|cpp|py|java)$", 
+            parsed.path.lower())
 
     except TypeError:
         print ("TypeError for ", parsed)
