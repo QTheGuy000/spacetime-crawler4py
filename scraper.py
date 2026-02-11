@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse, urljoin, urldefrag
+from urllib.parse import urlparse, urljoin, urldefrag, parse_qs
 from bs4 import BeautifulSoup
 
 def scraper(url, resp):
@@ -26,7 +26,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.raw_response >= 400:
+    if resp.status < 200 or resp.status >= 400:
         return out_links
 
     #save raw response URL
@@ -96,17 +96,22 @@ def is_valid(url):
         netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         if not any(netloc.endswith(d) for d in allowed):
-            return false
+            return False
 
         #avoid extremely long URLS
         if len(url) > 300:
-            return false
+            return False
     
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
             return False
     
+        #trap fix: block these query params
+        query = parse_qs(parsed.query)
+        if "tab_detail" in query or "tab_files" in query:
+            return False
+
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
@@ -121,8 +126,8 @@ def is_valid(url):
         segments = [s for s in parsed.path.lower().split("/") if s]
         counts = {}
         for s in segments:
-            count[s] = counts.get(s, 0) + 1
-            if count[s] >= 4:
+            counts[s] = counts.get(s, 0) + 1
+            if counts[s] >= 4:
                 return False
     
         
