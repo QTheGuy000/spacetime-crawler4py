@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse, urljoin, urldefrag, parse_qs
+from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
 from word_stats import update_from_html
 
@@ -27,7 +27,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.raw_response >= 400:
+    if resp.status < 200 or resp.status >= 400:
         return out_links
 
     #save raw response URL
@@ -99,23 +99,18 @@ def is_valid(url):
         #only allow the required domains
         netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
-        if not any(netloc.endswith(d) for d in allowed):
+        if not any(host == d or host.endswith("." + d) for d in allowed):
             return False
 
         #avoid extremely long URLS
         if len(url) > 300:
             return False
-
-        # block directory listing URLs (those with no path or just "/")
-        q = parsed.query.lower()
-        if "C=" in q and "O=" in q:
-            return False
-        
+    
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
             return False
-
+    
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
@@ -214,5 +209,3 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
-
-
