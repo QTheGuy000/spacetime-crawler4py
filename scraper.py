@@ -101,7 +101,7 @@ def is_valid(url):
         #only allow the required domains
         netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
-        if not any(host == d or host.endswith("." + d) for d in allowed):
+        if not any(netloc == d or netloc.endswith("." + d) for d in allowed):
             return False
 
         #avoid extremely long URLS
