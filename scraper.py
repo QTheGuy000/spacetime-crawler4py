@@ -101,7 +101,12 @@ def is_valid(url):
         #avoid extremely long URLS
         if len(url) > 300:
             return False
-    
+
+        # block directory listing URLs (those with no path or just "/")
+        q = parsed.query.lower()
+        if "C=" in q and "O=" in q:
+            return False
+        
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
@@ -146,3 +151,4 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
