@@ -105,17 +105,17 @@ def is_valid(url):
         #avoid extremely long URLS
         if len(url) > 300:
             return False
-
-        # block directory listing URLs (those with no path or just "/")
-        q = parsed.query.lower()
-        if "C=" in q and "O=" in q:
-            return False
         
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
             return False
-
+            
+        #trap fix: block these query params
+        query = parse_qs(parsed.query)
+        if "tab_detail" in query or "tab_files" in query:
+            return False
+        
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
@@ -214,5 +214,6 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
 
 
