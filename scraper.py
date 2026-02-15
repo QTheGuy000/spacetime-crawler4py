@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse, urljoin, urldefrag
+from urllib.parse import urlparse, urljoin, urldefrag, parse_qs
 from bs4 import BeautifulSoup
 from word_stats import update_from_html
 
@@ -27,7 +27,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.status >= 400:
+    if resp.status < 200 or resp.raw_response >= 400:
         return out_links
 
     #save raw response URL
@@ -110,7 +110,7 @@ def is_valid(url):
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
             return False
-    
+
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
@@ -194,7 +194,6 @@ def is_valid(url):
             if count[s] >= 4:
                 return False
     
-        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
@@ -210,3 +209,4 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
