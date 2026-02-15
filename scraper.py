@@ -89,7 +89,6 @@ def extract_next_links(url, resp):
         if abs_url not in seen_on_page:
             seen_on_page.add(abs_url)
             out_links.append(abs_url)
-    print(f"First 10 tokens: {tokens[:10]}")
     #return the list
     return out_links
 
