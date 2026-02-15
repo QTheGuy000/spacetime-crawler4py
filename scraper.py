@@ -27,7 +27,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.raw_response >= 400:
+    if resp.status < 200 or resp.status >= 400:
         return out_links
 
     #save raw response URL
@@ -226,6 +226,7 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
 
 
 
