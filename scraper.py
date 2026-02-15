@@ -6,6 +6,9 @@ nltk.download('stopwords')
 from nltk.corpus import stopwords
 from collections import Counter
 unique_pages = set()
+
+REJECTED_LOGS = "rejected_urls.log"
+
 from word_stats import update_from_html
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -101,25 +104,30 @@ def is_valid(url):
 
         #only allow http/https
         if parsed.scheme not in set(["http", "https"]):
+            reject_and_log(url, "not http https")
             return False
 
         #only allow the required domains
         netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         if not any(netloc == d or netloc.endswith("." + d) for d in allowed):
+            reject_and_log(url, "not in allowed domain")
             return False
 
         #avoid extremely long URLS
         if len(url) > 300:
+            reject_and_log(url, "len > 300")
             return False
     
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
+            reject_and_log(url, "jsessionid sessionid lower url")
             return False
     
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
+            reject_and_log(url, "c= o=")
             return False
 
         q = (parsed.query or "").lower()
@@ -129,6 +137,7 @@ def is_valid(url):
         if "isg.ics.uci.edu" in netloc:
             #block login/admin 
             if path.startswith("/wp-login.php") or path.startswith("/wp-admin"):
+                reject_and_log(url, "login or admin")
                 return False
 
             #block calendar params
@@ -139,15 +148,19 @@ def is_valid(url):
                 "paged", "page", "offset"        # generic paging
             ]
             if any(bp in q for bp in bad_params):
+                reject_and_log(url, "bad params")
                 return False
 
             #block endless calendar pages but keep event pages
             if path.startswith("/events/tag/") or path.startswith("/events/category/"):
+                reject_and_log(url, "events tag or category")
                 return False
             if path.startswith("/events/list") or path.startswith("/events/month"):
+                reject_and_log(url, "events list or month")
                 return False
             #some pages are /events/tag/<tag>/<yyyy-mm>
             if re.search(r"^/events/tag/[^/]+/\d{4}-\d{2}/?$", path):
+                reject_and_log(url, "events tag something else")
                 return False
 
         #Gitlab traps
@@ -155,6 +168,7 @@ def is_valid(url):
 
             # reject any query string
             if parsed.query:
+                reject_and_log(url, "parsed query")
                 return False
 
             #block common infinite navigation sections
@@ -163,10 +177,12 @@ def is_valid(url):
                 "/-/branches", "/-/project_members", "/-/activity", "/-/blob/"
             ]
             if any(b in path for b in bad_gitlab):
+                reject_and_log(url, "bad gitlab")
                 return False
 
             #block long hash tokens
             if re.search(r"/[0-9a-f]{32,}(/|$)", path):
+                reject_and_log(url, "re search")
                 return False
 
         #DokuWiki / wiki traps
@@ -175,22 +191,26 @@ def is_valid(url):
             "sectok=", "ns=", "rev=", "diff="
         ]
         if any(tp in q for tp in trap_params):
+            reject_and_log(url, "trap_params")
             return False
 
         #calendar / paging / sort traps (endless page=1,2,3…)
         if re.search(r"(?:^|[&;])(page|p|start|offset)=\d{3,}(?:$|[&;])", q):
+            reject_and_log(url, "page start offset")
             return False
 
         #repeated query keys (e.g., tab_details repeated, etc.)
         if parsed.query:
             keys = [kv.split("=", 1)[0].lower() for kv in re.split(r"[&;]", parsed.query) if kv.strip()]
             if len(keys) != len(set(keys)):
+                reject_and_log(url, "repeated query keys")
                 return False
         
         #avoid too many query parameters
         if parsed.query:
             parts = re.split(r"[&;]", parsed.query)
             if len([p for p in parts if p.strip()]) > 8:
+                reject_and_log(url, "too many query parameters")
                 return False
     
         #avoid repeated path segments
@@ -199,18 +219,21 @@ def is_valid(url):
         for s in segments:
             count[s] = count.get(s, 0) + 1
             if count[s] >= 4:
+                reject_and_log(url, "repeating path segments")
                 return False
 
         # Block pagination, sorting, and filtering traps
         # These generate infinite URL variations with little/no new content
         q = parsed.query.lower()
         if any(k in q for k in ["page=", "offset=", "start=", "sort=", "filter=", "replytocom="]):
+            reject_and_log(url, "pagination, sorting, filtering")
             return False
 
         # Block internal search result pages
         # Search pages endlessly generate new URLs with low information value
         path = parsed.path.lower()
         if "/search" in path:
+            reject_and_log(url, "low information value")
             return False
 
         return not re.match(
@@ -224,13 +247,12 @@ def is_valid(url):
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
             + r"|txt|c|h|cpp|cc|py|java)$", 
             parsed.path.lower())
-
+    
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+    
 
-
-    if current:
-        tokens.append("".join(current).lower())
-
-    return tokens
+def reject_and_log(url, exp):
+    with open(REJECTED_LOGS, "a", encoding="utf-8") as f:
+        f.write(f"{url}\t{exp}\n")
