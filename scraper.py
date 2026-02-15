@@ -132,17 +132,17 @@ def is_valid(url):
         #avoid extremely long URLS
         if len(url) > 300:
             return False
-
-        # block directory listing URLs (those with no path or just "/")
-        q = parsed.query.lower()
-        if "C=" in q and "O=" in q:
-            return False
         
         #avoid session ids
         lower_url = url.lower()
         if "jsessionid" in lower_url or "sessionid" in lower_url:
             return False
-
+            
+        #trap fix: block these query params
+        query = parse_qs(parsed.query)
+        if "tab_detail" in query or "tab_files" in query:
+            return False
+        
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
@@ -246,7 +246,6 @@ def tokenize(file_path):
     """Returns a list of lowercase alphanumeric tokens, skipping non-ASCII input."""
     tokens = []
     current = []
-
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             for ch in line:
@@ -279,3 +278,4 @@ print(f"The longest page is: {highest_word_count_page}, And the word count is: {
 print("50 most common words: ")
 for word, num in word_counters.most_common(50):
     print(f"{word}: {count}")
+
