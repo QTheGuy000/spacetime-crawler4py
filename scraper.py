@@ -27,7 +27,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.status >= 400:
+    if resp.status < 200 or resp.raw_response >= 400:
         return out_links
 
     #save raw response URL
@@ -193,7 +193,19 @@ def is_valid(url):
             count[s] = count.get(s, 0) + 1
             if count[s] >= 4:
                 return False
-    
+
+        # Block pagination, sorting, and filtering traps
+        # These generate infinite URL variations with little/no new content
+        q = parsed.query.lower()
+        if any(k in q for k in ["page=", "offset=", "start=", "sort=", "filter=", "replytocom="]):
+            return False
+
+        # Block internal search result pages
+        # Search pages endlessly generate new URLs with low information value
+        path = parsed.path.lower()
+        if "/search" in path:
+            return False
+
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
