@@ -1,8 +1,8 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
-import ntlk
-ntlk.download('stopwords')
+import nltk
+nltk.download('stopwords')
 from nltk.corpus import stopwords
 from collections import Counter
 unique_pages = set()
