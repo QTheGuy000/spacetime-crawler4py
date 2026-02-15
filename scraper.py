@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
+from word_stats import update_from_html
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -26,7 +27,7 @@ def extract_next_links(url, resp):
         return out_links
 
     #Allow 200-399 so redirects don't stop the crawl
-    if resp.status < 200 or resp.raw_response >= 400:
+    if resp.status < 200 or resp.status >= 400:
         return out_links
 
     #save raw response URL
@@ -51,6 +52,9 @@ def extract_next_links(url, resp):
 
     #Use final downloaded URL as base (handles redirects)
     base = raw.url or url
+
+    #update word stats
+    update_from_html(base, content)
 
     #Avoid duplicates on the same page
     seen_on_page = set()
@@ -96,11 +100,11 @@ def is_valid(url):
         netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         if not any(netloc.endswith(d) for d in allowed):
-            return false
+            return False
 
         #avoid extremely long URLS
         if len(url) > 300:
-            return false
+            return False
     
         #avoid session ids
         lower_url = url.lower()
@@ -110,8 +114,73 @@ def is_valid(url):
         #avoid directory listing sort traps
         if "c=" in parsed.query.lower() and "o=" in parsed.query.lower():
             return False
-    
-        #Avoid too many query parameters
+
+        q = (parsed.query or "").lower()
+        path = (parsed.path or "").lower()
+
+        #WordPress calendar + login traps
+        if "isg.ics.uci.edu" in netloc:
+            #block login/admin 
+            if path.startswith("/wp-login.php") or path.startswith("/wp-admin"):
+                return False
+
+            #block calendar params
+            bad_params = [
+                "outlook-ical", "ical",          # export
+                "eventdisplay",                  # past/list views
+                "tribe-bar-date", "tribebar-date",# date pagination
+                "paged", "page", "offset"        # generic paging
+            ]
+            if any(bp in q for bp in bad_params):
+                return False
+
+            #block endless calendar pages but keep event pages
+            if path.startswith("/events/tag/") or path.startswith("/events/category/"):
+                return False
+            if path.startswith("/events/list") or path.startswith("/events/month"):
+                return False
+            #some pages are /events/tag/<tag>/<yyyy-mm>
+            if re.search(r"^/events/tag/[^/]+/\d{4}-\d{2}/?$", path):
+                return False
+
+        #Gitlab traps
+        if "gitlab.ics.uci.edu" in netloc:
+
+            # reject any query string
+            if parsed.query:
+                return False
+
+            #block common infinite navigation sections
+            bad_gitlab = ["/-/commit/", "/-/commits/", "/-/tree/", "/-/tags", "/-/compare",
+                "/-/merge_requests", "/-/issues", "/-/pipelines", "/-/jobs",
+                "/-/branches", "/-/project_members", "/-/activity", "/-/blob/"
+            ]
+            if any(b in path for b in bad_gitlab):
+                return False
+
+            #block long hash tokens
+            if re.search(r"/[0-9a-f]{32,}(/|$)", path):
+                return False
+
+        #DokuWiki / wiki traps
+        trap_params = [
+            "do=", "idx=", "tab_files", "tab_details", "image=", "media=",
+            "sectok=", "ns=", "rev=", "diff="
+        ]
+        if any(tp in q for tp in trap_params):
+            return False
+
+        #calendar / paging / sort traps (endless page=1,2,3…)
+        if re.search(r"(?:^|[&;])(page|p|start|offset)=\d{3,}(?:$|[&;])", q):
+            return False
+
+        #repeated query keys (e.g., tab_details repeated, etc.)
+        if parsed.query:
+            keys = [kv.split("=", 1)[0].lower() for kv in re.split(r"[&;]", parsed.query) if kv.strip()]
+            if len(keys) != len(set(keys)):
+                return False
+        
+        #avoid too many query parameters
         if parsed.query:
             parts = re.split(r"[&;]", parsed.query)
             if len([p for p in parts if p.strip()]) > 8:
@@ -119,9 +188,9 @@ def is_valid(url):
     
         #avoid repeated path segments
         segments = [s for s in parsed.path.lower().split("/") if s]
-        counts = {}
+        count = {}
         for s in segments:
-            count[s] = counts.get(s, 0) + 1
+            count[s] = count.get(s, 0) + 1
             if count[s] >= 4:
                 return False
     
@@ -135,7 +204,7 @@ def is_valid(url):
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz"
-            + r"|txt|c|h|cpp|py|java)$", 
+            + r"|txt|c|h|cpp|cc|py|java)$", 
             parsed.path.lower())
 
     except TypeError:
