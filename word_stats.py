@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+import threading
 from threading import Lock
 from bs4 import BeautifulSoup
 from tokenizer import tokenize_text
