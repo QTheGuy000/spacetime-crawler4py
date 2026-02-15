@@ -13,6 +13,7 @@ STOP_WORDS = {
 
 _counter = Counter()
 _lock = Lock()
+unique_pages = set()
 
 longest_page_url = None
 longest_page_word_count = 0
@@ -21,6 +22,7 @@ longest_page_word_count = 0
 def update_from_html(url, html_bytes):
     global longest_page_url
     global longest_page_word_count
+    global unique_pages
 
     if not html_bytes:
         return
@@ -33,6 +35,7 @@ def update_from_html(url, html_bytes):
 
     text = soup.get_text(separator=" ", strip=True)
     tokens = tokenize_text(text)
+    unique_pages.add(urldefrag(url)[0])
 
     # Filter stopwords
     filtered = [t for t in tokens if t not in STOP_WORDS and len(t) > 1]
@@ -50,6 +53,7 @@ def update_from_html(url, html_bytes):
 
 def write_report():
     print("\n===== REPORT =====")
+    print(f"Number of unique pages: {len(unique_pages)}")
     print(f"Longest page: {longest_page_url}")
     print(f"Word count: {longest_page_word_count}")
 

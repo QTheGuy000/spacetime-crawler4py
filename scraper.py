@@ -6,18 +6,12 @@ nltk.download('stopwords')
 from nltk.corpus import stopwords
 from collections import Counter
 unique_pages = set()
-highest_word_count = 0
-highest_word_count_page = None
-stop_words = set(stopwords.words('english'))
-word_counters = Counter()
 from word_stats import update_from_html
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    global highest_word_count
-    global highest_word_count_page
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -67,14 +61,6 @@ def extract_next_links(url, resp):
     if is_valid(base):
         update_from_html(base, content)
 
-    #Add unique pages to set
-    unique_pages.add(urldefrag(url)[0])
-
-    #Find the page with the highest number of words
-    num_of_words = word_count(content.decode('utf-8'))
-    if num_of_words > highest_word_count:
-        highest_word_count = num_of_words
-        highest_word_count_page = url
 
     #Count each word and add it to the word counters counter
     tokens = tokenize(content.decode('utf-8'))
@@ -283,10 +269,4 @@ def word_count(page):
     text = soup.get_text()
     words = tokenize(text)
     return len(words)
-
-print(f"Number of unique pages found: {len(unique_pages)}")
-print(f"The longest page is: {highest_word_count_page}, And the word count is: {highest_word_count}")
-print("50 most common words: ")
-for word, num in word_counters.most_common(50):
-    print(f"{word}: {count}")
 
