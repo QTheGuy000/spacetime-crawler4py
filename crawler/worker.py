@@ -8,7 +8,7 @@ import time
 
 TOTAL_CRAWLED = 0
 TOTAL_CRAWLED_LOCK = Lock()
-CRAWLED_MAX = 100
+CRAWLED_MAX = 1000
 
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier):
