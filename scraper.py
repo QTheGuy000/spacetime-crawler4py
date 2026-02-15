@@ -61,15 +61,6 @@ def extract_next_links(url, resp):
     if is_valid(base):
         update_from_html(base, content)
 
-
-    #Count each word and add it to the word counters counter
-    tokens = tokenize(content.decode('utf-8'))
-    non_stop_words = []
-    for word in tokens:
-        if word not in stop_words:
-            non_stop_words.append(word)
-
-    word_counters.update(non_stop_words)
     #update word stats
     update_from_html(base, content)
 
@@ -239,34 +230,8 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
-def tokenize(file_path):
-    """Returns a list of lowercase alphanumeric tokens, skipping non-ASCII input."""
-    tokens = []
-    current = []
-    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-        for line in f:
-            for ch in line:
-                if ord(ch) > 127:
-                    if current:
-                        tokens.append("".join(current).lower())
-                        current = []
-                    continue
-
-                if ch.isalnum():
-                    current.append(ch)
-                else:
-                    if current:
-                        tokens.append("".join(current).lower())
-                        current = []
 
     if current:
         tokens.append("".join(current).lower())
 
     return tokens
-
-def word_count(page):
-    soup = BeautifulSoup(page, 'html.parser')
-    text = soup.get_text()
-    words = tokenize(text)
-    return len(words)
-
