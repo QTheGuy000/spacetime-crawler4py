@@ -2,6 +2,8 @@ from collections import Counter
 from threading import Lock
 from bs4 import BeautifulSoup
 from tokenizer import tokenize_text
+from urllib.parse import urldefrag
+
 
 STOP_WORDS = {
     "a","an","and","are","as","at","be","by","for","from","has","he","in","is","it",
