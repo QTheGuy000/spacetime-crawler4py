@@ -101,7 +101,7 @@ def is_valid(url):
     # There are already some conditions that return False.
     try:
         parsed = urlparse(url)
-
+        path = (parsed.path or "").lower()
         #only allow http/https
         if parsed.scheme not in set(["http", "https"]):
             reject_and_log(url, "not http https")
@@ -114,6 +114,17 @@ def is_valid(url):
             reject_and_log(url, "not in allowed domain")
             return False
 
+        #Avoid pages that have a bunch of dates at the end
+        if re.search(r"/\d{4}-\d{2}-\d{2}", path):
+            reject_and_log(url, "date sequence")
+            return False
+        
+        #Avoid lengthy urls
+        segments_num = [s for s in parsed.path.split("/") if s]
+        if len(segments_num) > 8:
+            reject_and_log(url, "too deep path")
+            return False
+        
         #avoid extremely long URLS
         if len(url) > 300:
             reject_and_log(url, "len > 300")
@@ -131,7 +142,6 @@ def is_valid(url):
             return False
 
         q = (parsed.query or "").lower()
-        path = (parsed.path or "").lower()
 
         #WordPress calendar + login traps
         if "isg.ics.uci.edu" in netloc:

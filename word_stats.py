@@ -2,7 +2,7 @@ from collections import Counter
 from threading import Lock
 from bs4 import BeautifulSoup
 from tokenizer import tokenize_text
-from urllib.parse import urldefrag
+from urllib.parse import urldefrag, urlparse
 
 
 STOP_WORDS = {
@@ -16,6 +16,8 @@ STOP_WORDS = {
 _counter = Counter()
 _lock = Lock()
 unique_pages = set()
+subdomains_count = defaultdict(int)
+subdomains_lock = threading.Lock()
 
 longest_page_url = None
 longest_page_word_count = 0
@@ -37,7 +39,15 @@ def update_from_html(url, html_bytes):
 
     text = soup.get_text(separator=" ", strip=True)
     tokens = tokenize_text(text)
-    unique_pages.add(urldefrag(url)[0])
+    url_defrag = urldefrag(url)[0]
+    if url_defrag not in unique_pages:
+        unique_pages.add(url_defrag)
+
+        
+        netloc = urlparse(url).netloc.lower()
+        if netloc.endswith("uci.edu"):
+            with subdomains_lock:
+                subdomains_count[netloc] += 1
 
     # Filter stopwords
     filtered = [t for t in tokens if t not in STOP_WORDS and len(t) > 1]
@@ -53,6 +63,7 @@ def update_from_html(url, html_bytes):
             longest_page_url = url
 
 
+
 def write_report():
     print("\n===== REPORT =====")
     print(f"Number of unique pages: {len(unique_pages)}")
@@ -62,3 +73,7 @@ def write_report():
     print("\nTop 50 words:")
     for word, count in _counter.most_common(50):
         print(f"{word}\t{count}")
+
+    print("\nSubdomains:")
+    for sd in sorted(subdomains_count.keys()):
+        print(f"{sd}, {subdomains_count[sd]}")
