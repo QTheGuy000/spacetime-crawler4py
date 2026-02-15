@@ -53,8 +53,10 @@ def extract_next_links(url, resp):
     #Use final downloaded URL as base (handles redirects)
     base = raw.url or url
 
-    #update word stats
-    update_from_html(base, content)
+    # Update word stats only for pages we consider valid for this crawl
+    if is_valid(base):
+        update_from_html(base, content)
+
 
     #Avoid duplicates on the same page
     seen_on_page = set()
@@ -221,3 +223,4 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
