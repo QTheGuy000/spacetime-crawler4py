@@ -144,34 +144,34 @@ def is_valid(url):
         q = (parsed.query or "").lower()
 
         #WordPress calendar + login traps
-        if "isg.ics.uci.edu" in netloc:
-            #block login/admin 
-            if path.startswith("/wp-login.php") or path.startswith("/wp-admin"):
-                reject_and_log(url, "login or admin")
-                return False
+        #if "isg.ics.uci.edu" in netloc:
+        #block login/admin 
+        if path.startswith("/wp-login.php") or path.startswith("/wp-admin"):
+            reject_and_log(url, "login or admin")
+            return False
 
-            #block calendar params
-            bad_params = [
-                "outlook-ical", "ical",          # export
-                "eventdisplay",                  # past/list views
-                "tribe-bar-date", "tribebar-date",# date pagination
-                "paged", "page", "offset"        # generic paging
-            ]
-            if any(bp in q for bp in bad_params):
-                reject_and_log(url, "bad params")
-                return False
+        #block calendar params
+        bad_params = [
+            "outlook-ical", "ical",          # export
+            "eventdisplay",                  # past/list views
+            "tribe-bar-date", "tribebar-date",# date pagination
+            "paged", "page", "offset"        # generic paging
+        ]
+        if any(bp in q for bp in bad_params):
+            reject_and_log(url, "bad params")
+            return False
 
-            #block endless calendar pages but keep event pages
-            if path.startswith("/events/tag/") or path.startswith("/events/category/"):
-                reject_and_log(url, "events tag or category")
-                return False
-            if path.startswith("/events/list") or path.startswith("/events/month"):
-                reject_and_log(url, "events list or month")
-                return False
-            #some pages are /events/tag/<tag>/<yyyy-mm>
-            if re.search(r"^/events/tag/[^/]+/\d{4}-\d{2}/?$", path):
-                reject_and_log(url, "events tag something else")
-                return False
+        #block endless calendar pages but keep event pages
+        if path.startswith("/events/tag/") or path.startswith("/events/category/"):
+            reject_and_log(url, "events tag or category")
+            return False
+        if path.startswith("/events/list") or path.startswith("/events/month"):
+            reject_and_log(url, "events list or month")
+            return False
+        #some pages are /events/tag/<tag>/<yyyy-mm>
+        if re.search(r"^/events/tag/[^/]+/\d{4}-\d{2}/?$", path):
+            reject_and_log(url, "events tag something else")
+            return False
 
         #Gitlab traps
         if "gitlab.ics.uci.edu" in netloc:
