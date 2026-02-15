@@ -9,6 +9,7 @@ unique_pages = set()
 highest_word_count = 0
 highest_word_count_page = None
 stop_words = set(stopwords.words('english'))
+word_counters = Counter()
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -62,11 +63,23 @@ def extract_next_links(url, resp):
     #Use final downloaded URL as base (handles redirects)
     base = raw.url or url
 
-    #Find the highest
+    #Add unique pages to set
+    unique_pages.add(urldefrag(url)[0])
+
+    #Find the page with the highest number of words
     num_of_words = word_count(content.decode('utf-8'))
     if num_of_words > highest_word_count:
         highest_word_count = num_of_words
         highest_word_count_page = url
+
+    #Count each word and add it to the word counters counter
+    tokens = tokenize(content.decode('utf-8'))
+    non_stop_words = []
+    for word in tokens:
+        if word not in stop_words:
+            non_stop_words.append(word)
+
+    word_counters.update(non_stop_words)
 
     #Avoid duplicates on the same page
     seen_on_page = set()
@@ -93,7 +106,6 @@ def extract_next_links(url, resp):
         if abs_url not in seen_on_page:
             seen_on_page.add(abs_url)
             out_links.append(abs_url)
-    tokens = tokenize(content.decode('utf-8'))
     print(f"First 10 tokens: {tokens[:10]}")
     #return the list
     return out_links
@@ -196,3 +208,9 @@ def word_count(page):
     text = soup.get_text()
     words = tokenize(text)
     return len(words)
+
+print(f"Number of unique pages found: {len(unique_pages)}")
+print(f"The longest page is: {highest_word_count_page}, And the word count is: {highest_word_count}")
+print("50 most common words: ")
+for word, num in word_counters.most_common(50):
+    print(f"{word}: {count}")
