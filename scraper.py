@@ -1,12 +1,22 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag, parse_qs
 from bs4 import BeautifulSoup
+import ntlk
+ntlk.download('stopwords')
+from nltk.corpus import stopwords
+from collections import Counter
+unique_pages = set()
+highest_word_count = 0
+highest_word_count_page = None
+stop_words = set(stopwords.words('english'))
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
+    global highest_word_count
+    global highest_word_count_page
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -52,6 +62,12 @@ def extract_next_links(url, resp):
     #Use final downloaded URL as base (handles redirects)
     base = raw.url or url
 
+    #Find the highest
+    num_of_words = word_count(content.decode('utf-8'))
+    if num_of_words > highest_word_count:
+        highest_word_count = num_of_words
+        highest_word_count_page = url
+
     #Avoid duplicates on the same page
     seen_on_page = set()
 
@@ -77,7 +93,8 @@ def extract_next_links(url, resp):
         if abs_url not in seen_on_page:
             seen_on_page.add(abs_url)
             out_links.append(abs_url)
-
+    tokens = tokenize(content.decode('utf-8'))
+    print(f"First 10 tokens: {tokens[:10]}")
     #return the list
     return out_links
 
@@ -146,3 +163,36 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+
+def tokenize(file_path):
+    """Returns a list of lowercase alphanumeric tokens, skipping non-ASCII input."""
+    tokens = []
+    current = []
+
+    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        for line in f:
+            for ch in line:
+                if ord(ch) > 127:
+                    if current:
+                        tokens.append("".join(current).lower())
+                        current = []
+                    continue
+
+                if ch.isalnum():
+                    current.append(ch)
+                else:
+                    if current:
+                        tokens.append("".join(current).lower())
+                        current = []
+
+    if current:
+        tokens.append("".join(current).lower())
+
+    return tokens
+
+def word_count(page):
+    soup = BeautifulSoup(page, 'html.parser')
+    text = soup.get_text()
+    words = tokenize(text)
+    return len(words)
