@@ -104,7 +104,8 @@ def is_valid(url):
         path = (parsed.path or "").lower()
 
         #skip the eppstein pix gallery due to being nearly all pictures with low value captions
-        if re.match(r"https?://ics\.uci\.edu/~eppstein/pix/", url):
+        netloc = parsed.netloc.lower()
+        if netloc == "ics.uci.edu" and path.startswith("/~eppstein/pix/"):
             reject_and_log(url, "eppstein pix gallery")
             return False
 
@@ -114,7 +115,6 @@ def is_valid(url):
             return False
 
         #only allow the required domains
-        netloc = parsed.netloc.lower()
         allowed = ["ics.uci.edu", "cs.uci.edu", "informatics.uci.edu", "stat.uci.edu"]
         if not any(netloc == d or netloc.endswith("." + d) for d in allowed):
             reject_and_log(url, "not in allowed domain")
