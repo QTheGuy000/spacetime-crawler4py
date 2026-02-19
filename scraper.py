@@ -102,6 +102,12 @@ def is_valid(url):
     try:
         parsed = urlparse(url)
         path = (parsed.path or "").lower()
+
+        #skip the eppstein pix gallery due to being nearly all pictures with low value captions
+        if re.match(r"https?://ics\.uci\.edu/~eppstein/pix/", url):
+            reject_and_log(url, "eppstein pix gallery")
+            return False
+
         #only allow http/https
         if parsed.scheme not in set(["http", "https"]):
             reject_and_log(url, "not http https")
@@ -232,15 +238,13 @@ def is_valid(url):
                 reject_and_log(url, "repeating path segments")
                 return False
 
-        # Block pagination, sorting, and filtering traps
-        # These generate infinite URL variations with little/no new content
+        #block pagination, sorting, and filtering traps
         q = parsed.query.lower()
         if any(k in q for k in ["page=", "offset=", "start=", "sort=", "filter=", "replytocom="]):
             reject_and_log(url, "pagination, sorting, filtering")
             return False
 
-        # Block internal search result pages
-        # Search pages endlessly generate new URLs with low information value
+        #block internal search result pages
         path = parsed.path.lower()
         if "/search" in path:
             reject_and_log(url, "low information value")
