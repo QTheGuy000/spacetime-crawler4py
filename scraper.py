@@ -266,7 +266,7 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
     
-
+#write to a file so I can see what files are getting rejected
 def reject_and_log(url, exp):
     with open(REJECTED_LOGS, "a", encoding="utf-8") as f:
         f.write(f"{url}\t{exp}\n")
